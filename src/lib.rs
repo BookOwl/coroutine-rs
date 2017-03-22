@@ -1,22 +1,32 @@
-// Copyright 2013 The Rust Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
-// http://rust-lang.org/COPYRIGHT.
-//
-// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
-// except according to those terms.
+//! Coroutine implementation in Rust.
+//!
+//! ## Example
+//!
+//! ```rust
+//! use coroutine::asymmetric::*;
+//!
+//! let mut coro = Coroutine::spawn(|coro, val| {
+//!     println!("Inside {}", val);
+//!     coro.yield_with(val + 1)
+//! });
+//!
+//! println!("Resume1 {}", coro.resume(0).unwrap());
+//! println!("Resume2 {}", coro.resume(2).unwrap());
+//! ```
+//!
+//! This will prints
+//!
+//! ```plain
+//! Inside 0
+//! Resume1 1
+//! Resume2 2
+//! ```
 
-// #![license = "MIT/ASL2"]
-#![doc(html_logo_url = "http://www.rust-lang.org/logos/rust-logo-128x128-blk-v2.png",
-       html_favicon_url = "http://www.rust-lang.org/favicon.ico")]
+#![feature(fnbox)]
 
-#![feature(fnbox, asm, test, unboxed_closures)]
-
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate libc;
-extern crate test;
 extern crate context;
 
 use std::any::Any;
@@ -28,7 +38,7 @@ use std::thread;
 pub use options::Options;
 
 pub mod asymmetric;
-pub mod options;
+mod options;
 
 /// Return type of resuming. Ok if resume successfully with the current state,
 /// Err if resume failed with `Error`.
@@ -50,9 +60,11 @@ impl fmt::Debug for Error {
             &Error::Panicking(ref err) => {
                 let msg = match err.downcast_ref::<&'static str>() {
                     Some(s) => *s,
-                    None => match err.downcast_ref::<String>() {
-                        Some(s) => &s[..],
-                        None => "Box<Any>",
+                    None => {
+                        match err.downcast_ref::<String>() {
+                            Some(s) => &s[..],
+                            None => "Box<Any>",
+                        }
                     }
                 };
                 write!(f, "Panicking({})", msg)

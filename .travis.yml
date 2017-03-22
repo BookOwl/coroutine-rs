@@ -4,9 +4,14 @@ rust: nightly
 os:
     - linux
     - osx
+
+cache: cargo
+
 script:
   - rustc -V
   - cargo -V
-  - cargo test
+  - cargo test --no-fail-fast
+  - cargo test --release --no-fail-fast
   - cargo run --example simple
+  - cargo run --release --example simple
   - cargo doc --no-deps
